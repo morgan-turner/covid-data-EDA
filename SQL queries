@@ -1,0 +1,190 @@
+SELECT * 
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+ORDER BY 
+3, 4
+
+SELECT * 
+FROM
+`covid-deaths-348600.covid_data.covid_vaccinations`
+ORDER BY 
+3, 4           
+
+
+--Select data that I'm going to be using: cases, deaths, population
+
+SELECT 
+location, date, total_cases, new_cases, total_deaths, population
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+ORDER BY 
+1, 2
+
+--Evaluate total_cases vs total_deaths. Shows likelihood of death after infection by country. Can select individual countries with WHERE statement.
+
+SELECT 
+location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS death_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+WHERE 
+location = "United States"
+ORDER BY 
+1, 2 
+
+--Looking at total_cases vs population. Shows infection rate.
+
+SELECT 
+location, date, population, total_cases, (total_cases/population)*100 AS infection_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+WHERE 
+location = "United States"
+ORDER BY 
+1, 2 
+
+
+--What countries have the highest infection rates?
+
+SELECT
+location, population, MAX(total_cases) AS highest_infections, MAX(total_cases/population)*100 AS infection_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+GROUP BY 
+location, population
+ORDER BY 
+infection_rate desc
+
+
+--What countries have the highest death total death counts?
+--Had to include a WHERE statement here to exclude some categorical rows I hadn't noticed in my preview of the data
+
+SELECT
+location, population, MAX(total_deaths) AS total_death_count
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`  
+WHERE 
+continent is not null
+GROUP BY 
+location, population
+ORDER BY 
+total_death_count desc
+
+
+
+--Now looking at the data by continent
+--Add WHERE clause to exclude income categories and filter for continent data
+
+SELECT
+location, MAX(total_deaths) AS total_death_count
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`  
+WHERE 
+continent is null AND
+location != "Upper middle income" AND
+location != "High income" AND
+location != "Lower middle income" AND
+location != "Lower income" AND
+location != "Low income" AND
+location != "International" 
+GROUP BY 
+location
+ORDER BY 
+total_death_count desc
+
+
+--Global summary statistics
+
+SELECT 
+SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, SUM(new_deaths)/SUM(new_cases)*100 as global_death_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+WHERE 
+continent is not null
+ORDER BY 
+1, 2 
+
+
+--Daily global summary statistics
+
+SELECT 
+date, SUM(new_cases) as daily_new_cases, SUM(new_deaths) as daily_new_deaths, SUM(new_deaths)/SUM(new_cases)*100 as global_death_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+WHERE 
+continent is not null
+GROUP BY date
+ORDER BY 
+1, 2 
+
+
+--Looking at vaccination and testing data
+
+SELECT * 
+FROM
+`covid-deaths-348600.covid_data.covid_vaccinations`
+WHERE
+continent is not null
+ORDER BY 
+3, 4
+
+
+--Joining tables 
+
+SELECT *
+FROM
+`covid-deaths-348600.covid_data.covid_deaths` as dea
+JOIN 
+`covid-deaths-348600.covid_data.covid_vaccinations` as vac
+  ON dea.location = vac.location
+  and dea.date = vac.date
+WHERE
+dea.continent is not null
+
+
+
+--Exploring total population versus vaccination
+
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS running_total_vaccinations
+FROM
+`covid-deaths-348600.covid_data.covid_deaths` as dea
+JOIN 
+`covid-deaths-348600.covid_data.covid_vaccinations` as vac
+  ON dea.location = vac.location
+  and dea.date = vac.date
+WHERE
+dea.continent is not null AND
+--dea.location = "United States"
+ORDER BY
+2, 3
+
+
+--TEMP TABLE
+
+DROP TABLE IF EXISTS `covid-deaths-348600.covid_data.PercentPopulationVaccinated`;
+CREATE TABLE `covid-deaths-348600.covid_data.PercentPopulationVaccinated`
+  (
+  continent string,
+  location string,
+  date date,
+  population bigint,
+  new_vaccinations bigint,
+  running_total_vaccinations bigint
+  )
+  ;
+INSERT INTO `covid-deaths-348600.covid_data.PercentPopulationVaccinated`
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS running_total_vaccinations
+FROM
+`covid-deaths-348600.covid_data.covid_deaths` as dea
+JOIN 
+`covid-deaths-348600.covid_data.covid_vaccinations` as vac
+  ON dea.location = vac.location
+  and dea.date = vac.date
+WHERE dea.continent is not null 
+;
+SELECT*, (running_total_vaccinations/population)*100
+FROM `covid-deaths-348600.covid_data.PercentPopulationVaccinated`
+
+
+
+
+
