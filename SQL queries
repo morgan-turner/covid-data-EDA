@@ -1,8 +1,14 @@
+--To begin, data was organized into tables in MS Excel and then loaded into BigQuery for data exploration with SQL. 
+--Here, both uploaded tables 'covid_deaths' and 'covid_vaccinations' are being checked for accuracy and completeness. 
+--They are each ordered by the 3rd and 4th columns, continent and location
+
+
 SELECT * 
 FROM
 `covid-deaths-348600.covid_data.covid_deaths`
 ORDER BY 
 3, 4
+
 
 SELECT * 
 FROM
@@ -11,7 +17,7 @@ ORDER BY
 3, 4           
 
 
---Select data that I'm going to be using: cases, deaths, population
+--Here, the data that will be used in the analysis is selected (cases, deaths, and population metrics)
 
 SELECT 
 location, date, total_cases, new_cases, total_deaths, population
@@ -20,7 +26,9 @@ FROM
 ORDER BY 
 1, 2
 
---Evaluate total_cases vs total_deaths. Shows likelihood of death after infection by country. Can select individual countries with WHERE statement.
+
+--Now, total cases are evaluated against total deaths. This table shows the likelihood of death after infection by country. 
+--Here, the United States is selected to specifically look at data from this country.
 
 SELECT 
 location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS death_rate
@@ -31,7 +39,8 @@ location = "United States"
 ORDER BY 
 1, 2 
 
---Looking at total_cases vs population. Shows infection rate.
+
+--Now, total cases are evaluated against population with a calculation to approximate the infection rate in the United States.
 
 SELECT 
 location, date, population, total_cases, (total_cases/population)*100 AS infection_rate
@@ -43,7 +52,7 @@ ORDER BY
 1, 2 
 
 
---What countries have the highest infection rates?
+--Next, we can look at which countries have the highest infection rates by asking BigQuery to order the table by infection rate.
 
 SELECT
 location, population, MAX(total_cases) AS highest_infections, MAX(total_cases/population)*100 AS infection_rate
@@ -55,8 +64,8 @@ ORDER BY
 infection_rate desc
 
 
---What countries have the highest death total death counts?
---Had to include a WHERE statement here to exclude some categorical rows I hadn't noticed in my preview of the data
+--What countries have the highest total death counts? We can use the MAX function to ask BigQuery to show the highest numbers. 
+--A WHERE statement is included here to exclude some categorical rows of data that list metrics by continent.
 
 SELECT
 location, population, MAX(total_deaths) AS total_death_count
@@ -70,9 +79,9 @@ ORDER BY
 total_death_count desc
 
 
-
---Now looking at the data by continent
---Add WHERE clause to exclude income categories and filter for continent data
+--We can also look at the data by continent; This query returns a table of total death counts by continent. 
+--We can use the MAX clause because the data is updated regularly and keeps a tally of the running total of deaths. 
+--The WHERE clauses here are filtering out additional categorical data aggregating countries by socioeconomic status.
 
 SELECT
 location, MAX(total_deaths) AS total_death_count
@@ -92,7 +101,8 @@ ORDER BY
 total_death_count desc
 
 
---Global summary statistics
+--We can also look at global summary statistics like the aggregate number of cases and deaths, as well as the global death rate.
+
 
 SELECT 
 SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, SUM(new_deaths)/SUM(new_cases)*100 as global_death_rate
@@ -104,7 +114,8 @@ ORDER BY
 1, 2 
 
 
---Daily global summary statistics
+--Let's break down the global summary statistics into the daily numbers to better understand how the pandemic is progressing over time. 
+--The data here begins on January 1, 2020 and continues daily until the present day.
 
 SELECT 
 date, SUM(new_cases) as daily_new_cases, SUM(new_deaths) as daily_new_deaths, SUM(new_deaths)/SUM(new_cases)*100 as global_death_rate
@@ -117,7 +128,8 @@ ORDER BY
 1, 2 
 
 
---Looking at vaccination and testing data
+--Now we have a better understanding of cases and deaths, let's look at vaccination and testing data. 
+--This data emerged later on in the pandemic as tests and vaccines became available.
 
 SELECT * 
 FROM
@@ -128,7 +140,8 @@ ORDER BY
 3, 4
 
 
---Joining tables 
+--Let's join these tables so we can get a look at all the data in BigQuery, excluding categorical values for socioeconomic status and continent. 
+--We will give each table an alias to keep the query from becoming too unwieldy.
 
 SELECT *
 FROM
@@ -141,8 +154,8 @@ WHERE
 dea.continent is not null
 
 
-
---Exploring total population versus vaccination
+--Now we can look at columns from either table. 
+--Let's look at total population data versus vaccinations and make a new column to keep a running tally of vaccinations:
 
 SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS running_total_vaccinations
 FROM
@@ -158,7 +171,7 @@ ORDER BY
 2, 3
 
 
---TEMP TABLE
+--In order to calculate vaccination as a percentage of population with the running_total_vaccinations column, we need to create a temp table:
 
 DROP TABLE IF EXISTS `covid-deaths-348600.covid_data.PercentPopulationVaccinated`;
 CREATE TABLE `covid-deaths-348600.covid_data.PercentPopulationVaccinated`
