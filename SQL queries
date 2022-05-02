@@ -198,6 +198,63 @@ SELECT*, (running_total_vaccinations/population)*100
 FROM `covid-deaths-348600.covid_data.PercentPopulationVaccinated`
 
 
+--Data from the following queries will be downloaded for use in Tableau visualizations
+--Tableau Query 1: Worldwide summary of cases, deaths, and death rate
+
+SELECT 
+SUM(new_cases) as total_cases, SUM(new_deaths) as total_deaths, SUM(new_deaths)/SUM(new_cases)*100 as global_death_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+WHERE 
+continent is not null
+ORDER BY 
+1, 2 
+
+
+--Tableau Query 2: Summary of deaths by continent
+
+SELECT
+location, MAX(total_deaths) AS total_death_count
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`  
+WHERE 
+continent is null AND
+location != "Upper middle income" AND
+location != "High income" AND
+location != "Lower middle income" AND
+location != "Lower income" AND
+location != "Low income" AND
+location != "International" AND
+location != "World" AND
+location != "European Union"
+GROUP BY 
+location
+ORDER BY 
+total_death_count desc
+
+
+--Tableau Query 3: Infection rate overall by country
+
+SELECT
+location, population, MAX(total_cases) AS highest_infections, MAX(total_cases/population)*100 AS infection_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+GROUP BY 
+location, population
+ORDER BY 
+infection_rate desc
+
+
+--Tableau Query 4: Infection rate by country and date
+
+SELECT
+location, population, date, MAX(total_cases) AS highest_infections, MAX(total_cases/population)*100 AS infection_rate
+FROM
+`covid-deaths-348600.covid_data.covid_deaths`
+GROUP BY 
+location, population, date
+ORDER BY 
+infection_rate desc
 
 
 
