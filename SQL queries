@@ -1,3 +1,7 @@
+name: Covid Data BigQuery Exploration
+description: some queries in BigQuery syntax to better understand the covid deaths and cases dataset
+markdown: kramdown
+
 --To begin, data was organized into tables in MS Excel and then loaded into BigQuery for data exploration with SQL. 
 --Here, both uploaded tables 'covid_deaths' and 'covid_vaccinations' are being checked for accuracy and completeness. 
 --They are each ordered by the 3rd and 4th columns, continent and location
